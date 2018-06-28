@@ -27,7 +27,7 @@ library:
   source-dirs: src
 
 executables:
-  parser-haskell-exe:
+  elm-c:
     main:                Main.hs
     source-dirs:         app
     ghc-options:

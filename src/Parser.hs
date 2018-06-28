@@ -36,6 +36,12 @@ operator = do
   cs <- many $ Tok.opLetter emptyDef
   return (c:cs)
 
+arrow :: Parser Expr
+arrow = do
+  value <- expr
+  reserved "->"
+  result <- expr
+  return $ Arrow value result
 
 -- Syntax
 type Name = String
@@ -45,8 +51,13 @@ data Expr
   | Var String
   | BinaryOp Name Expr Expr
   | UnaryOp Name Expr
+  | Arrow Expr Expr
   | If Expr Expr Expr
+  | For Name Expr Expr Expr Expr
+  | Case Name [Expr]
   | Function Name [Name] Expr
+  | FunctionCall Name [Expr]
+  | Recur Name [Expr] Expr
   deriving (Show)
   -- | Function Name [Name] Expr
 
@@ -69,6 +80,22 @@ function = do
   whitespace
   body <- expr
   return $ Function (head ls) (tail ls) body
+
+functionCall :: Parser Expr
+functionCall = do
+  (name, ls) <- parens $ do
+    name <- identifier
+    ls <- many $ parens expr
+    return (name, ls)
+  return $ FunctionCall name ls
+
+recur :: Parser Expr
+recur = do
+  name <- identifier
+  ls <- many $ expr
+  reserved "="
+  body <- expr
+  return $ Recur name (tail ls) body
 
 op :: Parser String
 op = do
@@ -94,7 +121,8 @@ expr :: Parser Expr
 expr = Ex.buildExpressionParser (binops ++ [[unop], [binop]]) factor
 
 factor :: Parser Expr
-factor = try function 
+factor = try function
+      <|> try functionCall
       <|> try ifelse
       <|> try floating
       <|> try int
@@ -111,6 +139,20 @@ ifelse = do
   fl <- expr
   return $ If cond tr fl
 
+myWord :: Parser String
+myWord =
+  many1 anyChar
+
+caseDef :: Parser Expr
+caseDef = do
+  reserved "casea"
+  name <- myWord  
+  reserved "of"
+  ls <- many arrow
+  return $ Case "a" ls
+
+
+
 contents :: Parser a -> Parser a
 contents p = do
   Tok.whiteSpace lexer
@@ -122,8 +164,10 @@ parseExpr :: String -> Either ParseError Expr
 parseExpr s = parse (contents expr) "<stdin>" s
 
 run = 
-  parseExpr "isBiggerThanFive a = if a > 5 then 1 else 0"
+  parseExpr "(plus (1) (2))"
+  -- parseExpr "( sum a )"
 
+-- sum a = if a > 0 then a + sum (a - 1) else 0
 
 -- Normal Function
 -- plus a b = a + b
@@ -132,6 +176,12 @@ run =
 -- If Else
 -- isBiggerThanFive a = if a > 5 then 1 else 0
 -- Function "isBiggerThanFive" ["a"] (If (BinaryOp ">" (Var "a") (Float 5.0)) (Float 1.0) (Float 0.0))
+
+-- REcursive
+-- sum a = if a > 0 then (sum (a - 1) ) else 0
+-- Function "sum" ["a"] (If (BinaryOp ">" (Var "a") (Float 0.0)) (FunctionCall "sum" [BinaryOp "-" (Var "a") (Float 1.0)]) (Float 0.0))
+
+
 
 
 

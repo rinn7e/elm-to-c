@@ -9,29 +9,63 @@ emitC expr =
     Function name args body ->
       let
         argsWithType = map ((++) "float ") args
-          
       in
-        "float " ++ name ++ " ( " ++ (DL.intercalate " , " argsWithType) ++ " )" ++ "{\n" ++
-          "return " ++ (emitC body) ++ ";\n" ++
-        "}\n"
+        case body of
+          If cond tr fl ->
+            "float " ++ name ++ " ( " ++ (DL.intercalate " , " argsWithType) ++ " )" ++ "{\n" ++
+              "\tfloat _result;\n" ++
+              "\tif ( " ++ (emitC cond)  ++ " ) { \n" ++
+                "\t\t_result = ( " ++ (emitC tr) ++ " );\n" ++
+              "\t} else {\n" ++
+                "\t\t_result = ( " ++ (emitC fl) ++ " );\n" ++
+              "\t}\n" ++
+              "\treturn _result;\n" ++
+              
+            "}\n"
 
-    BinaryOp name (Var var1) (Var var2) ->
-      var1 ++ " " ++ name ++ " " ++ var2
+          _ -> 
+
+            "float " ++ name ++ " ( " ++ (DL.intercalate " , " argsWithType) ++ " )" ++ "{\n" ++
+              "\treturn ( " ++ (emitC body) ++ " );\n" ++ 
+            "}\n"
+
+    FunctionCall name args ->
+      let
+        argValue = map (emitC) args
+        
+      in
+        name ++ " ( " ++ (DL.intercalate ", " argValue) ++ " )"
+
+    BinaryOp name expr1 expr2 ->
+      (emitC expr1) ++ " " ++ name ++ " " ++ (emitC expr2)
+    
+    Float num ->
+      show num
+
+    Var string ->
+      string
+    
+    -- If cond tr fl ->
+    --   "if ( " ++ (emitC cond)  ++ " ) { \n" ++
+    --     "return ( " ++ (emitC tr) ++ " );\n" ++
+    --   "else {\n" ++
+    --     "return ( " ++ (emitC fl) ++ " );\n" ++
+    --   "}\n"
     
       
     _ -> 
-      "emitC"
+      "Cannot emit c code from expression"
 
 
-test =
-  let 
-    result = P.parseExpr "plus a b = a + b"
-  in
-    case result of
-      Right a ->
-        emitC a 
-      Left b ->
-        show b
+-- test =
+--   let 
+--     result = P.parseExpr "plus a b = a + b"
+--   in
+--     case result of
+--       Right a ->
+--         emitC a 
+--       Left b ->
+--         show b
 
 
 
