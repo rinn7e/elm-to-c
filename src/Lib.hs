@@ -16,10 +16,12 @@ eval a =
 
 run :: IO ()
 run = do
-    putStrLn "Function Creation"
+    putStrLn "Function/Variable Creation"
     putStrLn "--------------------------"
     putStrLn $ eval "plus a c = a + c"
     putStrLn $ fromRight "parse error" $ P.parseExpr "plus a c = a + c"
+    putStrLn $ eval "test = 10"
+    putStrLn $ fromRight "parse error" $ P.parseExpr "test = 10"
     putStrLn "--------------------------\n"
 
     putStrLn "Function Call"
@@ -38,6 +40,14 @@ run = do
     putStrLn "--------------------------"
     putStrLn $ eval "sum a = if a > 0 then a + (sum (a - 1) ) else 0"
     putStrLn $ fromRight "parse error" $ P.parseExpr  "sum a = if a > 0 then (sum (a - 1) ) else 0"
+    putStrLn "--------------------------\n"
+
+    putStrLn "Optimization"
+    putStrLn "--------------------------"
+    putStrLn $ eval "test = 10 * 10"
+    putStrLn $ eval "test = 10 * 1"
+    putStrLn $ eval "test = 10 + 10"
+    putStrLn $ eval "test = 10 + 0"
     putStrLn "--------------------------\n"
 
 

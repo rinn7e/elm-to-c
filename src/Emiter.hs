@@ -10,24 +10,27 @@ emitC expr =
       let
         argsWithType = map ((++) "float ") args
       in
-        case body of
-          If cond tr fl ->
-            "float " ++ name ++ " ( " ++ (DL.intercalate " , " argsWithType) ++ " )" ++ "{\n" ++
-              "\tfloat _result;\n" ++
-              "\tif ( " ++ (emitC cond)  ++ " ) { \n" ++
-                "\t\t_result = ( " ++ (emitC tr) ++ " );\n" ++
-              "\t} else {\n" ++
-                "\t\t_result = ( " ++ (emitC fl) ++ " );\n" ++
-              "\t}\n" ++
-              "\treturn _result;\n" ++
-              
-            "}\n"
+        if args == [] then
+          "float " ++ name ++ " = " ++ (emitC body) ++ ";\n"
+        else
+          case body of
+            If cond tr fl ->
+              "float " ++ name ++ " ( " ++ (DL.intercalate " , " argsWithType) ++ " )" ++ "{\n" ++
+                "\tfloat _result;\n" ++
+                "\tif ( " ++ (emitC cond)  ++ " ) { \n" ++
+                  "\t\t_result = ( " ++ (emitC tr) ++ " );\n" ++
+                "\t} else {\n" ++
+                  "\t\t_result = ( " ++ (emitC fl) ++ " );\n" ++
+                "\t}\n" ++
+                "\treturn _result;\n" ++
+                
+              "}\n"
 
-          _ -> 
+            _ -> 
 
-            "float " ++ name ++ " ( " ++ (DL.intercalate " , " argsWithType) ++ " )" ++ "{\n" ++
-              "\treturn ( " ++ (emitC body) ++ " );\n" ++ 
-            "}\n"
+              "float " ++ name ++ " ( " ++ (DL.intercalate " , " argsWithType) ++ " )" ++ "{\n" ++
+                "\treturn ( " ++ (emitC body) ++ " );\n" ++ 
+              "}\n"
 
     FunctionCall name args ->
       let
@@ -37,7 +40,22 @@ emitC expr =
         name ++ " ( " ++ (DL.intercalate ", " argValue) ++ " )"
 
     BinaryOp name expr1 expr2 ->
-      (emitC expr1) ++ " " ++ name ++ " " ++ (emitC expr2)
+      -- Binary Operator Optimization
+        let 
+          defaultVal = (emitC expr1) ++ " " ++ name ++ " " ++ (emitC expr2)
+        in
+          case name of 
+            "+" -> 
+              case expr2 of 
+                Float 0 -> (emitC expr1)
+                _ -> defaultVal
+            "*" ->
+              case expr2 of
+                Float 1 -> (emitC expr1)
+                _ -> defaultVal
+            _ -> 
+              defaultVal
+      
     
     Float num ->
       show num
